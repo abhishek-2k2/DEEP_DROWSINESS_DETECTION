@@ -2,120 +2,50 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
- 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
 </head>
-<body>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 0; width: 80%; margin: 0 auto; padding: 20px;">
+    <h1 style="color: #333;">Drowsiness Detection System</h1>
+    <p>This project demonstrates a drowsiness detection system using YOLOv5 for object detection and custom training. The system captures real-time video from a webcam and detects whether a person is awake or drowsy.</p>
 
-<h1>Face Mask Detection</h1>
-<p>This project aims to detect whether a person is wearing a face mask using machine learning techniques.</p>
+    <h2 style="color: #555;">Features</h2>
+    <ul style="margin: 0; padding: 0 0 0 20px;">
+        <li>Real-time drowsiness detection using YOLOv5 and custom-trained models.</li>
+        <li>Image collection from a webcam to create a custom dataset for training.</li>
+        <li>Integration with OpenCV for capturing video and rendering detection results.</li>
+    </ul>
 
-<h2>Table of Contents</h2>
-<ul>
-    <li><a href="#introduction">Introduction</a></li>
-    <li><a href="#dataset">Dataset</a></li>
-    <li><a href="#installation">Installation</a></li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#results">Results</a></li>
-</ul>
+    <h2 style="color: #555;">Installation</h2>
+    <pre style="background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd;">
+pip install torch torchvision torchaudio
+git clone https://github.com/ultralytics/yolov5
+cd yolov5
+pip install -r requirements.txt
+    </pre>
 
-<h2 id="introduction">Introduction</h2>
-<p>Face mask detection is an important task for public safety, especially during the COVID-19 pandemic. This project uses machine learning to classify images into two categories: with mask and without mask.</p>
+    <h2 style="color: #555;">Training the Model</h2>
+    <pre style="background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd;">
+python train.py --img 320 --batch 16 --epochs 500 --data dataset.yml --weights yolov5s.pt --workers 2
+    </pre>
 
-<h2 id="dataset">Dataset</h2>
-<p>The dataset used in this project is the Face Mask Dataset from Kaggle, which contains images of people with and without face masks.</p>
-<p>Dataset link: <a href="https://www.kaggle.com/datasets/omkargurav/face-mask-dataset" download>Face Mask Dataset</a></p>
-
-<h2 id="installation">Installation</h2>
-<p>To run this project locally, follow these steps:</p>
-<pre><code>
-!pip install kaggle
-# configure Kaggle API credentials
-!mkdir -p ~/.kaggle
-!cp kaggle.json ~/.kaggle/
-!chmod 600 ~/.kaggle/kaggle.json
-# download dataset from Kaggle
-!kaggle datasets download -d omkargurav/face-mask-dataset
-# unzip the dataset
-from zipfile import ZipFile
-dataset = '/content/face-mask-dataset.zip'
-with ZipFile(dataset,'r') as zip:
-  zip.extractall()
-  print('The dataset is extracted')
-</code></pre>
-
-<h2 id="usage">Usage</h2>
-<p>Load and preprocess the dataset:</p>
-<pre><code>
-import os
+    <h2 style="color: #555;">Running the Detection</h2>
+    <pre style="background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd;">
+import torch
+import cv2
 import numpy as np
-from PIL import Image
-from sklearn.model_selection import train_test_split
 
-# Load images with masks
-with_mask_files = os.listdir('/content/data/with_mask')
-data = []
-for img_file in with_mask_files:
-    image = Image.open('/content/data/with_mask/' + img_file)
-    image = image.resize((128, 128))
-    image = image.convert('RGB')
-    image = np.array(image)
-    data.append(image)
+model = torch.hub.load('ultralytics/yolov5', 'custom', path='yolov5/runs/train/exp/weights/last.pt', force_reload=True)
 
-# Load images without masks
-without_mask_files = os.listdir('/content/data/without_mask')
-for img_file in without_mask_files:
-    image = Image.open('/content/data/without_mask/' + img_file)
-    image = image.resize((128, 128))
-    image = image.convert('RGB')
-    image = np.array(image)
-    data.append(image)
-
-# Create labels
-with_mask_labels = [1] * len(with_mask_files)
-without_mask_labels = [0] * len(without_mask_files)
-labels = with_mask_labels + without_mask_labels
-
-# Convert to numpy arrays
-X = np.array(data)
-Y = np.array(labels)
-
-# Split data into training and testing sets
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=2)
-X_train_scaled = X_train / 255.0
-X_test_scaled = X_test / 255.0
-</code></pre>
-
-<h2 id="results">Results</h2>
-<p>Train a neural network model to classify images:</p>
-<pre><code>
-import tensorflow as tf
-from tensorflow.keras import layers, models
-
-# Define the model
-model = models.Sequential([
-    layers.Conv2D(32, (3, 3), activation='relu', input_shape=(128, 128, 3)),
-    layers.MaxPooling2D((2, 2)),
-    layers.Conv2D(64, (3, 3), activation='relu'),
-    layers.MaxPooling2D((2, 2)),
-    layers.Conv2D(128, (3, 3), activation='relu'),
-    layers.MaxPooling2D((2, 2)),
-    layers.Flatten(),
-    layers.Dense(128, activation='relu'),
-    layers.Dense(2)
-])
-
-# Compile the model
-model.compile(optimizer='adam',
-              loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-              metrics=['accuracy'])
-
-# Train the model
-history = model.fit(X_train_scaled, Y_train, epochs=10, validation_split=0.1)
-
-# Evaluate the model
-test_loss, test_acc = model.evaluate(X_test_scaled, Y_test)
-print('Test accuracy:', test_acc)
-</code></pre>
-
+cap = cv2.VideoCapture(0)
+while cap.isOpened():
+    ret, frame = cap.read()
+    results = model(frame)
+    cv2.imshow('YOLO', np.squeeze(results.render()))
+    if cv2.waitKey(10) & 0xFF == ord('q'):
+        break
+cap.release()
+cv2.destroyAllWindows()
+    </pre>
 </body>
 </html>
